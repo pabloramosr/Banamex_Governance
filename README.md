@@ -132,3 +132,4 @@ uv run python main.py --interactive
 - **Cero Datos Huérfanos:** Las consultas del `sql_agent` se ejecutan sobre un modelo dimensional relacional validado con llaves foráneas (`dim_cliente`, `dim_producto`).
 - **Verificabilidad y Trazabilidad:** Cada respuesta final del Coordinador cita explícitamente la fuente del dato (PostgreSQL interno, Pinecone normativo o Tavily externo).
 - **Memoria de Sesión (LangGraph Checkpointing):** Utiliza `MemorySaver` para recordar el hilo de la conversación y mantener el contexto de preguntas anteriores.
+

@@ -72,3 +72,4 @@ def create_hub_spoke_graph():
 
 # Instancia compilada lista para usar
 multi_agent_app = create_hub_spoke_graph()
+

@@ -36,3 +36,4 @@ class AgentState(TypedDict):
     
     # Respuesta final formulada y validada por el Data Steward
     final_answer: Optional[str]
+

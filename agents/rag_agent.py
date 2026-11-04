@@ -101,3 +101,4 @@ def rag_agent_node(state: dict) -> dict:
         "evidences": {"rag_evidence": result},
         "messages": [AIMessage(content=msg_content, name="rag_agent")]
     }
+

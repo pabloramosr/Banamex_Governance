@@ -87,7 +87,7 @@ def run_demo():
 def run_interactive():
     """Modo interactivo en terminal para hacer cualquier pregunta."""
     print("\n" + "=" * 80)
-    print(" 🏛️ BANAMEX DATA STEWARD - CONSOLA INTERACTIVA (HUB-AND-SPOKE)")
+    print(" BANAMEX DATA STEWARD - CONSOLA INTERACTIVA (HUB-AND-SPOKE)")
     print(" Escribe tu consulta o 'salir' para terminar.")
     print("=" * 80)
 

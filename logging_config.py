@@ -45,3 +45,4 @@ def log_web_search(query: str, result_summary: str):
 def log_final_response(answer: str):
     console.print()
     console.print(Panel(answer, title="🏛️ Respuesta Final - Data Steward Banamex", border_style="bold bright_green"))
+

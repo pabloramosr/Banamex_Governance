@@ -86,3 +86,4 @@ def web_search_agent_node(state: dict) -> dict:
         "evidences": {"web_evidence": result},
         "messages": [AIMessage(content=msg_content, name="web_search_agent")]
     }
+
