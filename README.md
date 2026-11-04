@@ -1,10 +1,10 @@
-# 🏛️ Plataforma Multi-Agente Hub-and-Spoke - Data Steward Banamex
+# Plataforma Multi-Agente Hub-and-Spoke - Data Steward Banamex
 
 Sistema inteligente multi-agente diseñado bajo la arquitectura **Hub-and-Spoke (Supervisor Pattern)** con **LangGraph** para la democratización y gobernanza de datos en **Grupo Financiero Banamex**.
 
 ---
 
-## 📐 Arquitectura del Sistema
+## Arquitectura del Sistema
 
 ```
                     ┌─────────────────────────┐
@@ -48,7 +48,7 @@ Sistema inteligente multi-agente diseñado bajo la arquitectura **Hub-and-Spoke 
 
 ---
 
-## 📁 Estructura del Repositorio
+## Estructura del Repositorio
 
 ```
 MultiAgentHS/
@@ -73,7 +73,7 @@ MultiAgentHS/
 
 ---
 
-## 🚀 Requisitos Previos
+## Requisitos Previos
 
 1. **Python >= 3.12** y [uv](https://docs.astral.sh/uv/) instalado.
 2. **Ollama** ejecutándose localmente con los modelos descargados:
@@ -87,7 +87,7 @@ MultiAgentHS/
 
 ---
 
-## 🛠️ Instalación y Puesta en Marcha
+## Instalación y Puesta en Marcha
 
 ### 1. Clonar el repositorio y entrar a la carpeta
 ```bash
@@ -127,7 +127,7 @@ uv run python main.py --interactive
 
 ---
 
-## 🧠 Características de Gobernanza y Data Stewardship
+## Características de Gobernanza y Data Stewardship
 
 - **Cero Datos Huérfanos:** Las consultas del `sql_agent` se ejecutan sobre un modelo dimensional relacional validado con llaves foráneas (`dim_cliente`, `dim_producto`).
 - **Verificabilidad y Trazabilidad:** Cada respuesta final del Coordinador cita explícitamente la fuente del dato (PostgreSQL interno, Pinecone normativo o Tavily externo).
