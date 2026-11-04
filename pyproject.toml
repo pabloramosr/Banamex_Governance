@@ -1,0 +1,24 @@
+[project]
+name = "multiagenths"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "langchain>=1.4.8",
+    "langchain-community>=0.4.2",
+    "langchain-core>=1.7.4",
+    "langchain-ollama>=1.1.0",
+    "langchain-pinecone>=0.2.13",
+    "langchain-tavily>=0.2.18",
+    "langchain-text-splitters>=1.1.3",
+    "langgraph>=1.2.19",
+    "langgraph-checkpoint>=4.3.1",
+    "pinecone>=7.3.0",
+    "psycopg2>=2.9.13",
+    "pydantic>=2.14.2",
+    "python-dotenv>=1.2.4",
+    "rich>=15.0.0",
+    "sqlalchemy>=2.1.7",
+    "streamlit>=1.66.1",
+]
