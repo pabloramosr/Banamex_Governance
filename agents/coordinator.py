@@ -69,7 +69,7 @@ REGLAS DE GOBERNANZA Y COMUNICACIÓN:
 3. Mantén un tono formal, bancario y transparente ("Data-Driven").
 """
 
-
+# def route_question(messages: Sequence[BaseMessage]) -> dict:
 def route_question(question: str) -> dict:
     """Invoca al LLM para determinar el ruteo hacia el spoke adecuado."""
     llm = ChatOllama(model=COORDINATOR_MODEL, temperature=0)

@@ -50,7 +50,7 @@ def create_hub_spoke_graph():
     # 3. Ruteo condicional desde el Coordinador hacia los Spokes o hacia END
     graph.add_conditional_edges(
         "coordinator",
-        route_next_spoke,
+        route_next_spoke, # paralelo
         {
             "sql_agent": "sql_agent",
             "rag_agent": "rag_agent",

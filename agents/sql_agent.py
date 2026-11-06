@@ -69,6 +69,11 @@ Generate a SQL query to answer [QUESTION]{question}[/QUESTION]
 The query will run on a database with the following schema:
 {schema_info}
 
+### Business Rules (Capa Semántica Banamex):
+1. Segmentación de clientes: La categoría del cliente está en `dim_cliente.segmento_cte` y sus valores son 'PREMIUM', 'PREFERENTE' y 'MASIVO'. NO uses filtros de saldo para el segmento.
+2. Grano de conteo: Para saber cuántos clientes hay, cuenta siempre sobre `dim_cliente` (ej. `COUNT(*)`). La tabla `fact_sdos_captacoloca_m` solo se usa si piden importes o montos de dinero.
+3. Productos: Captación ('CHEQUES', 'AHORRO') y Colocación ('C_PERSONAL', 'TDC').
+
 ### Answer
 Given the database schema, here is the SQL query that [QUESTION]{question}[/QUESTION]
 [SQL]
