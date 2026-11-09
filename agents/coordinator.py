@@ -24,6 +24,9 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 
 COORDINATOR_MODEL = os.environ.get("COORDINATOR_MODEL", "qwen2.5:3b")
 
+# Una vez ya generada la primera evidencia, se presenta el caso donde el coordinador debe de responder la suguiente
+# pregunta utilizando infomracion de la sesion o delegar un spoke adicional para completar la consulta. El coordinador
+# debe de ser capaz de razonar esa eleccion dada una nueva consulta.
 
 ROUTING_PROMPT = """Eres el Data Steward y Coordinador Principal de la Plataforma de Datos de Banamex.
 Tu función es analizar la pregunta del usuario y seleccionar el AGENTE ESPECIALIZADO adecuado.
@@ -125,6 +128,8 @@ def synthesize_response(question: str, evidences: dict) -> str:
     response = llm.invoke([{"role": "user", "content": prompt}])
     return response.content if hasattr(response, "content") else str(response)
 
+# El coordinador no debe de guardar las evidencias, ya que se guardan en la respuesta final del agente, lo que necesita
+# es usar su memoria para relacionar nuevas preguntas con las respuestas existentes si es necesario.
 
 def coordinator_node(state: dict) -> dict:
     """

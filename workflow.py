@@ -25,6 +25,10 @@ from agents.sql_agent import sql_agent_node
 from agents.rag_agent import rag_agent_node
 from agents.web_search_agent import web_search_agent_node
 
+# La funcion recibe como argumento 'state' el estado del agente(AgentState) y recupera el next_agent
+# razonado por el coordinador, de no haber agente seleccionado regresa un FINISH,
+# posteriormente verifica cual de los agentes fue llamado y ese sera el next_agent. De no llamar a ninguno
+# y ser FINISH, el garfo termina con END.
 
 def route_next_spoke(state: AgentState) -> str:
     """Función de enrutamiento condicional basada en la decisión del Coordinador."""
@@ -36,6 +40,9 @@ def route_next_spoke(state: AgentState) -> str:
 
 def create_hub_spoke_graph():
     """Construye y compila el flujo StateGraph de LangGraph."""
+    # El grafo se construye utilizando el AgentState como estado, 
+    # es el universo completo, y sigue las reglas de los 6 canales de estado.
+    # El estado se mueve y actualiza de nodo en nodo.
     graph = StateGraph(AgentState)
 
     # 1. Registrar nodos
@@ -48,10 +55,10 @@ def create_hub_spoke_graph():
     graph.add_edge(START, "coordinator")
 
     # 3. Ruteo condicional desde el Coordinador hacia los Spokes o hacia END
-    graph.add_conditional_edges(
-        "coordinator",
-        route_next_spoke, # paralelo
-        {
+    graph.add_conditional_edges( # Hacerlo paralelo!!!
+        "coordinator", # Nodo de origen
+        route_next_spoke, # Funcion de eleccion
+        {               # Mapa de destinos disponibles.
             "sql_agent": "sql_agent",
             "rag_agent": "rag_agent",
             "web_search_agent": "web_search_agent",
@@ -65,8 +72,14 @@ def create_hub_spoke_graph():
     graph.add_edge("web_search_agent", "coordinator")
 
     # 5. Compilar con memoria local en memoria (checkpointing)
-    checkpointer = MemorySaver()
-    app = graph.compile(checkpointer=checkpointer)
+    checkpointer = MemorySaver() # thread_id, se toma una foto cada que un nodo termina de ejecutarse.
+    # {
+    #"sesion_pablo_1": [ Foto_Paso_1, Foto_Paso_2, Foto_Paso_3 ],
+    #"sesion_usuario_2": [ ... ]
+    #}
+    # En una sesion que solo involucra pregunta respuesta, se toman 3 fotos solamente
+    # 1- Coordinator -> 2- SQL Spoke -> 3- Syntesis
+    app = graph.compile(checkpointer=checkpointer) # Se construye el grafo con su memoria, y queda definida la arquitectura.
     return app
 
 
