@@ -21,3 +21,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Large data files and unzipped corpus
+data/reto_banamex_completo/
+data/*.sql
+*.sql

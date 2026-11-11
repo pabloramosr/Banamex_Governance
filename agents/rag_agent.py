@@ -1,9 +1,10 @@
 """
 agents/rag_agent.py
 
-Spoke especializado en gobernanza documental y normativa bancaria (RAG).
+Spoke especializado en gobernanza documental, comisiones y normativa bancaria (RAG).
 Consulta el índice semántico 'banamex-governance' en Pinecone generado con bge-large
-para responder sobre Términos y Condiciones, privacidad, cookies, geolocalización y obligaciones.
+sobre el corpus oficial de Banamex (59 PDFs de contratos, comisiones, folletos, circulares Banxico y términos).
+Genera respuestas fundamentadas citando fuentes oficiales con Google Gemini (gemini-3.5-flash).
 """
 
 import os
@@ -13,6 +14,7 @@ from dotenv import load_dotenv
 from langchain_core.messages import AIMessage
 from langchain_core.prompts import PromptTemplate
 from langchain_ollama import ChatOllama, OllamaEmbeddings
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_pinecone import PineconeVectorStore
 
 load_dotenv(Path(__file__).parent.parent / ".env")
@@ -20,7 +22,8 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY")
 INDEX_NAME = os.environ.get("INDEX_NAME", "banamex-governance")
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "bge-large")
-COORDINATOR_MODEL = os.environ.get("COORDINATOR_MODEL", "qwen2.5:3b")
+COORDINATOR_MODEL = os.environ.get("COORDINATOR_MODEL", "gemini-3.5-flash")
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 
 
 def get_vector_store() -> PineconeVectorStore:
@@ -31,50 +34,71 @@ def get_vector_store() -> PineconeVectorStore:
     )
 
 
+def get_rag_llm():
+    """Retorna Gemini si GOOGLE_API_KEY está configurada; fallback a Ollama local."""
+    if GOOGLE_API_KEY:
+        return ChatGoogleGenerativeAI(
+            model=COORDINATOR_MODEL,
+            google_api_key=GOOGLE_API_KEY,
+            temperature=0
+        )
+    return ChatOllama(model="qwen2.5:3b", temperature=0)
+
+
 def run_rag_agent(question: str) -> dict:
     """
-    Recupera contexto de Pinecone y genera una respuesta fundamentada con qwen2.5:3b.
+    Recupera contexto de Pinecone y genera una respuesta fundamentada con Gemini 3.5 Flash.
     """
     try:
         vector_store = get_vector_store()
-        retriever = vector_store.as_retriever(search_kwargs={"k": 3})
+        retriever = vector_store.as_retriever(search_kwargs={"k": 4})
         docs = retriever.invoke(question)
 
         if not docs:
             return {
                 "retrieved_docs": [],
-                "summary": "No se encontró evidencia relevante en los Términos y Condiciones de Banamex.",
+                "summary": "No se encontró evidencia relevante en la documentación oficial de Banamex.",
                 "error": None
             }
 
         context_blocks = []
         for i, d in enumerate(docs, 1):
-            source = d.metadata.get("source", "terminos_banamex.txt")
-            context_blocks.append(f"[Fragmento {i} | Fuente: {source}]\n{d.page_content.strip()}")
+            source = d.metadata.get("source", "documento_banamex")
+            page = d.metadata.get("page", 1)
+            tipo = d.metadata.get("tipo_documento", "documento")
+            prod = d.metadata.get("producto_o_familia", "")
+            context_blocks.append(
+                f"[Fragmento {i} | Fuente: {source} (Pág. {page}, Tipo: {tipo}, Producto: {prod})]\n{d.page_content.strip()}"
+            )
 
         context_text = "\n\n---\n\n".join(context_blocks)
 
-        llm = ChatOllama(model=COORDINATOR_MODEL, temperature=0)
+        llm = get_rag_llm()
         prompt = PromptTemplate.from_template(
-            """Eres el Oficial de Cumplimiento y Gobernanza de Datos de Banamex.
-Responde a la siguiente consulta del usuario basándote ESTRICTAMENTE en los Términos y Condiciones de Banamex proporcionados.
-Si la información no se encuentra en el texto, indícalo claramente sin inventar.
+            """Eres el Oficial de Cumplimiento, Comisiones y Gobernanza Documental de Banamex.
+Responde a la siguiente consulta del usuario basándote ESTRICTAMENTE en la documentación oficial de Banamex recuperada (contratos, anexos de comisiones, folletos o normativas).
+Si la información no se encuentra en el texto proporcionado, indícalo claramente sin inventar.
 
-### TEXTO OFICIAL DE BANAMEX:
+### TEXTO OFICIAL RECUPERADO DE BANAMEX:
 {context}
 
-### PREGUNTA DEL USUARIO:
+### PREGUNTA O INSTRUCCIÓN:
 {question}
 
-### INSTRUCCIONES:
-- Cita los numerales o conceptos clave (ej. Uso y Restricciones, Propiedad Intelectual, Cookies, Geolocalización).
-- Sé conciso, profesional y fundamentado.
+### REGLAS DE RESPUESTA:
+1. Precisión y Citas: Cita el nombre del documento oficial (ej. anexo_costco.pdf, contrato_cuenta_base.pdf), numerales, comisiones exactas en pesos o porcentajes y páginas.
+2. Si se trata de comisiones o costos, sé muy específico sobre montos sin IVA, anualidades o penalizaciones.
+3. Mantén un tono formal, bancario, transparente y verificado.
 """
         )
 
         chain = prompt | llm
         response = chain.invoke({"context": context_text, "question": question})
-        rag_answer = response.content if hasattr(response, "content") else str(response)
+        content = response.content if hasattr(response, "content") else str(response)
+        if isinstance(content, list):
+            rag_answer = "".join(part.get("text", "") if isinstance(part, dict) else str(part) for part in content)
+        else:
+            rag_answer = str(content)
 
         return {
             "retrieved_docs": context_blocks,
@@ -92,13 +116,12 @@ Si la información no se encuentra en el texto, indícalo claramente sin inventa
 
 def rag_agent_node(state: dict) -> dict:
     """Nodo de LangGraph para el agente RAG normativo."""
-    question = state.get("question", "")
-    result = run_rag_agent(question)
+    instruction = state.get("spoke_instruction") or state.get("question", "")
+    result = run_rag_agent(instruction)
 
-    msg_content = f"### [EVIDENCIA RAG - TÉRMINOS Y CONDICIONES BANAMEX]\n{result['summary']}"
+    msg_content = f"### [EVIDENCIA RAG - DOCUMENTACIÓN OFICIAL BANAMEX]\n{result['summary']}"
 
     return {
         "evidences": {"rag_evidence": result},
         "messages": [AIMessage(content=msg_content, name="rag_agent")]
     }
-

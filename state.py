@@ -11,7 +11,10 @@ from langgraph.graph.message import add_messages
 
 
 def merge_evidences(existing: Dict[str, Any], new_evidence: Dict[str, Any]) -> Dict[str, Any]:
-    """Combina evidencias recopiladas por los distintos agentes spoke."""
+    """Combina evidencias recopiladas por los distintos agentes spoke.
+    Si se pasa un diccionario vacío explícito ({}), resetea la evidencia para un nuevo turno."""
+    if new_evidence == {}:
+        return {}
     updated = dict(existing or {})
     if new_evidence:
         updated.update(new_evidence)
@@ -40,8 +43,13 @@ class AgentState(TypedDict):
     
     # Siguiente agente a invocar ('sql_agent', 'rag_agent', 'web_search_agent', o 'FINISH')
     next_agent: Optional[str]
+
+    # Instrucción contextualizada y enriquecida que el Coordinador le envía al Spoke
+    # En lugar de enviar la pregunta cruda, el Coordinador traduce el contexto de la conversación
+    # en una instrucción técnica clara para evitar ambigüedades en el agente especializado.
+    spoke_instruction: Optional[str]
     
-    # Almacén de evidencias recopiladas por los agentes especializados
+    # Almacén de evidencias recopiladas por los agentes especializados durante el turno
     # Annotated: Etiquetar o anotar para adjuntar funcion especial (merge_evidences).
     evidences: Annotated[Dict[str, Any], merge_evidences]
     
