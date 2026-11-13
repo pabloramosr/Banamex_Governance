@@ -14,15 +14,12 @@ from dotenv import load_dotenv
 
 from langchain_core.messages import HumanMessage
 from workflow import multi_agent_app
-from agents.llm import ConfigError, require_google_api_key
 from logging_config import (
     log_header,
     log_coordinator_decision,
     log_sql_execution,
     log_rag_retrieval,
-    log_web_search,
     log_final_response,
-    log_fatal_error,
 )
 
 load_dotenv(Path(__file__).parent / ".env")
@@ -42,7 +39,6 @@ def ask_data_steward(question: str, thread_id: str = "demo_thread"):
         "final_answer": None
     }
 
-    # Transmisión paso a paso de los eventos del grafo
     final_state = None
     for event in multi_agent_app.stream(initial_input, config=config, stream_mode="updates"):
         for node_name, update in event.items():
@@ -57,25 +53,22 @@ def ask_data_steward(question: str, thread_id: str = "demo_thread"):
             elif node_name == "rag_agent":
                 ev = update.get("evidences", {}).get("rag_evidence", {})
                 log_rag_retrieval(question, ev.get("summary", "N/A"))
-            elif node_name == "web_search_agent":
-                ev = update.get("evidences", {}).get("web_evidence", {})
-                log_web_search(question, ev.get("summary", "N/A"))
 
     if final_state and final_state.get("final_answer"):
         log_final_response(final_state["final_answer"])
 
 
 def run_demo():
-    """Ejecuta una batería de pruebas demostrativas cubriendo cada Spoke."""
+    """Ejecuta una batería de pruebas demostrativas cubriendo SQL y RAG oficial."""
     demo_questions = [
         # Prueba 1: SQL Agent (PostgreSQL + Gemini)
         "¿Cuántos clientes tenemos registrados en el segmento PREMIUM?",
         
-        # Prueba 2: RAG Agent (Pinecone + bge-large + Términos Banamex)
-        "¿Qué establecen los términos y condiciones sobre el uso de cookies y la geolocalización?",
+        # Prueba 2: RAG Tool (Pinecone + bge-large + Documentación Oficial)
+        "¿Cuáles son las comisiones y costos de anualidad de la tarjeta Costco Banamex?",
         
-        # Prueba 3: Web Search Agent (Tavily + Gemini)
-        "¿Cuáles son las noticias más recientes sobre Citibanamex en México?"
+        # Prueba 3: Blindaje de Dominio (Pregunta fuera de contexto Banamex)
+        "¿Quién ganó el partido de fútbol de ayer en la noche?"
     ]
 
     print("\n" + "=" * 80)
@@ -100,23 +93,18 @@ def run_interactive():
             if not q:
                 continue
             if q.lower() in ["salir", "exit", "quit"]:
-                print("Finalizando sesión...")
+                print("\nCerrando sesión del Data Steward. ¡Hasta pronto!")
                 break
             ask_data_steward(q, thread_id=thread_id)
-        except (KeyboardInterrupt, EOFError):
-            print("\nSesión terminada.")
+        except KeyboardInterrupt:
+            print("\nOperación cancelada por el usuario.")
             break
+        except Exception as e:
+            print(f"\nError en la ejecución: {e}")
 
 
 if __name__ == "__main__":
-    try:
-        # Validación temprana: sin API key de Gemini no tiene sentido arrancar.
-        require_google_api_key()
-        if len(sys.argv) > 1 and sys.argv[1] == "--interactive":
-            run_interactive()
-        else:
-            # --demo o sin argumentos: batería demostrativa
-            run_demo()
-    except ConfigError as e:
-        log_fatal_error(str(e))
-        sys.exit(1)
+    if len(sys.argv) > 1 and sys.argv[1] == "--demo":
+        run_demo()
+    else:
+        run_interactive()

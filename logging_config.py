@@ -1,7 +1,7 @@
 """
 logging_config.py
 
-Formateo visual enriquecido para la trazabilidad del sistema multi-agente.
+Formateo visual enriquecido para la trazabilidad del sistema multi-agente de Banamex.
 Permite visualizar claramente qué decisiones toma el Hub y qué evidencia genera cada Spoke.
 """
 
@@ -33,13 +33,8 @@ def log_sql_execution(query: str, result_summary: str):
 
 
 def log_rag_retrieval(query: str, sources_summary: str):
-    content = f"[bold blue]Búsqueda Semántica:[/bold blue] {query}\n\n[bold blue]Evidencia Recuperada:[/bold blue]\n{sources_summary}"
-    console.print(Panel(content, title="Spoke: RAG Agent (Pinecone + bge-large)", border_style="blue"))
-
-
-def log_web_search(query: str, result_summary: str):
-    content = f"[bold magenta]Consulta Web (Tavily):[/bold magenta] {query}\n\n[bold magenta]Resultados:[/bold magenta]\n{result_summary}"
-    console.print(Panel(content, title="Spoke: Web Search Agent (Tavily API)", border_style="magenta"))
+    content = f"[bold blue]Búsqueda Semántica en Pinecone:[/bold blue] {query}\n\n[bold blue]Evidencia Documental Recuperada (bge-large):[/bold blue]\n{sources_summary}"
+    console.print(Panel(content, title="Spoke: RAG Tool (Pinecone + bge-large)", border_style="blue"))
 
 
 def log_final_response(answer: str):
