@@ -13,32 +13,28 @@ from dotenv import load_dotenv
 
 from langchain_core.messages import AIMessage
 from langchain_core.prompts import PromptTemplate
-from langchain_ollama import ChatOllama
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_tavily import TavilySearch
+
+from agents.llm import get_gemini_llm
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY")
 COORDINATOR_MODEL = os.environ.get("COORDINATOR_MODEL", "gemini-3.5-flash")
-GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 
 
 def get_web_llm():
-    """Retorna Gemini si GOOGLE_API_KEY está configurada; fallback a Ollama local."""
-    if GOOGLE_API_KEY:
-        return ChatGoogleGenerativeAI(
-            model=COORDINATOR_MODEL,
-            google_api_key=GOOGLE_API_KEY,
-            temperature=0
-        )
-    return ChatOllama(model="qwen2.5:3b", temperature=0)
+    """Retorna Gemini. Lanza ConfigError (error terminal) si falta GOOGLE_API_KEY."""
+    return get_gemini_llm(COORDINATOR_MODEL)
 
 
 def run_web_search_agent(question: str) -> dict:
     """
     Ejecuta una búsqueda externa con Tavily y sintetiza los hallazgos con Gemini 3.5 Flash.
     """
+    # Fuera del try: un error de configuración es terminal y no debe convertirse en evidencia.
+    llm = get_web_llm()
+
     if not TAVILY_API_KEY:
         return {
             "query": question,
@@ -51,7 +47,6 @@ def run_web_search_agent(question: str) -> dict:
         tavily = TavilySearch(max_results=3, tavily_api_key=TAVILY_API_KEY)
         search_results = tavily.invoke(question)
 
-        llm = get_web_llm()
         prompt = PromptTemplate.from_template(
             """Eres el Analista de Inteligencia Externa de Banamex.
 Sintetiza de forma clara y objetiva la información pública obtenida de Internet para responder a la duda del usuario.

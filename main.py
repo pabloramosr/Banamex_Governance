@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 
 from langchain_core.messages import HumanMessage
 from workflow import multi_agent_app
+from agents.llm import ConfigError, require_google_api_key
 from logging_config import (
     log_header,
     log_coordinator_decision,
@@ -21,6 +22,7 @@ from logging_config import (
     log_rag_retrieval,
     log_web_search,
     log_final_response,
+    log_fatal_error,
 )
 
 load_dotenv(Path(__file__).parent / ".env")
@@ -66,13 +68,13 @@ def ask_data_steward(question: str, thread_id: str = "demo_thread"):
 def run_demo():
     """Ejecuta una batería de pruebas demostrativas cubriendo cada Spoke."""
     demo_questions = [
-        # Prueba 1: SQL Agent (PostgreSQL + sqlcoder:7b)
+        # Prueba 1: SQL Agent (PostgreSQL + Gemini)
         "¿Cuántos clientes tenemos registrados en el segmento PREMIUM?",
         
         # Prueba 2: RAG Agent (Pinecone + bge-large + Términos Banamex)
         "¿Qué establecen los términos y condiciones sobre el uso de cookies y la geolocalización?",
         
-        # Prueba 3: Web Search Agent (Tavily + qwen2.5:3b)
+        # Prueba 3: Web Search Agent (Tavily + Gemini)
         "¿Cuáles son las noticias más recientes sobre Citibanamex en México?"
     ]
 
@@ -107,11 +109,14 @@ def run_interactive():
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "--demo":
-        run_demo()
-    else:
-        # Por defecto corre demo rápida y luego pasa a interactivo si se desea
+    try:
+        # Validación temprana: sin API key de Gemini no tiene sentido arrancar.
+        require_google_api_key()
         if len(sys.argv) > 1 and sys.argv[1] == "--interactive":
             run_interactive()
         else:
+            # --demo o sin argumentos: batería demostrativa
             run_demo()
+    except ConfigError as e:
+        log_fatal_error(str(e))
+        sys.exit(1)

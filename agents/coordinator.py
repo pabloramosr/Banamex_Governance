@@ -22,24 +22,17 @@ from typing import Sequence, Dict, Any, Optional
 from dotenv import load_dotenv
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, BaseMessage
-from langchain_ollama import ChatOllama
-from langchain_google_genai import ChatGoogleGenerativeAI
+
+from agents.llm import get_gemini_llm
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 COORDINATOR_MODEL = os.environ.get("COORDINATOR_MODEL", "gemini-3.5-flash")
-GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 
 
 def get_coordinator_llm():
-    """Retorna Gemini si GOOGLE_API_KEY está configurada, o Ollama como fallback local."""
-    if GOOGLE_API_KEY:
-        return ChatGoogleGenerativeAI(
-            model=COORDINATOR_MODEL,
-            google_api_key=GOOGLE_API_KEY,
-            temperature=0
-        )
-    return ChatOllama(model=COORDINATOR_MODEL, temperature=0)
+    """Retorna Gemini. Lanza ConfigError (error terminal) si falta GOOGLE_API_KEY."""
+    return get_gemini_llm(COORDINATOR_MODEL)
 
 
 def extract_content_text(response) -> str:

@@ -13,9 +13,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_ollama import OllamaLLM
 from langchain_community.utilities import SQLDatabase
+
+from agents.llm import get_gemini_llm
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
@@ -25,7 +25,6 @@ PGUSER = os.environ.get("PGUSER", "postgres")
 PGPASSWORD = os.environ.get("PGPASSWORD", "banamex_database")
 PGDATABASE = os.environ.get("PGDATABASE", "reto_banamex")
 SQL_MODEL = os.environ.get("SQL_MODEL", "gemini-3.5-flash")
-GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 
 DB_URI = f"postgresql+psycopg2://{PGUSER}:{PGPASSWORD}@{PGHOST}:{PGPORT}/{PGDATABASE}?options=-csearch_path=dim,cfg,public"
 
@@ -35,14 +34,8 @@ def get_db_instance() -> SQLDatabase:
 
 
 def get_sql_llm():
-    """Retorna Gemini si GOOGLE_API_KEY está configurada; fallback a Ollama local."""
-    if GOOGLE_API_KEY:
-        return ChatGoogleGenerativeAI(
-            model=SQL_MODEL,
-            google_api_key=GOOGLE_API_KEY,
-            temperature=0
-        )
-    return OllamaLLM(model=SQL_MODEL, temperature=0)
+    """Retorna Gemini. Lanza ConfigError (error terminal) si falta GOOGLE_API_KEY."""
+    return get_gemini_llm(SQL_MODEL)
 
 
 def extract_clean_sql(text: str) -> str:
@@ -142,28 +135,24 @@ def run_sql_agent(instruction: str) -> dict:
     2. Extrae la consulta SQL limpia.
     3. Ejecuta en PostgreSQL reto_banamex y retorna el resultado.
     """
-    db = get_db_instance()
+    # Fuera del try: un error de configuración es terminal y no debe convertirse en evidencia.
     llm = get_sql_llm()
+    db = get_db_instance()
 
     try:
         user_message = f"Instrucción para generar SQL: {instruction}"
         
         # Invocar LLM
-        if isinstance(llm, ChatGoogleGenerativeAI):
-            messages = [
-                SystemMessage(content=SQL_SYSTEM_PROMPT),
-                HumanMessage(content=user_message)
-            ]
-            raw_response = llm.invoke(messages)
-            content = raw_response.content
-            if isinstance(content, list):
-                raw_text = "".join(part.get("text", "") if isinstance(part, dict) else str(part) for part in content)
-            else:
-                raw_text = str(content)
+        messages = [
+            SystemMessage(content=SQL_SYSTEM_PROMPT),
+            HumanMessage(content=user_message)
+        ]
+        raw_response = llm.invoke(messages)
+        content = raw_response.content
+        if isinstance(content, list):
+            raw_text = "".join(part.get("text", "") if isinstance(part, dict) else str(part) for part in content)
         else:
-            prompt = f"{SQL_SYSTEM_PROMPT}\n\nPregunta: {instruction}\n[SQL]"
-            raw_response = llm.invoke(prompt)
-            raw_text = raw_response if isinstance(raw_response, str) else getattr(raw_response, "content", "")
+            raw_text = str(content)
 
         clean_sql = extract_clean_sql(raw_text)
 
