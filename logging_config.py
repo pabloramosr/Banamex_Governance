@@ -29,7 +29,7 @@ def log_coordinator_decision(plan: str, next_agent: str):
 
 def log_sql_execution(query: str, result_summary: str):
     content = f"[bold green]SQL Generado:[/bold green]\n{query}\n\n[bold green]Resultado Obtenido:[/bold green]\n{result_summary}"
-    console.print(Panel(content, title="Spoke: SQL Agent (sqlcoder:7b + PostgreSQL)", border_style="green"))
+    console.print(Panel(content, title="Spoke: SQL Agent (Gemini + PostgreSQL)", border_style="green"))
 
 
 def log_rag_retrieval(query: str, sources_summary: str):
@@ -46,3 +46,7 @@ def log_final_response(answer: str):
     console.print()
     console.print(Panel(answer, title="Respuesta Final - Data Steward Banamex", border_style="bold bright_green"))
 
+
+def log_fatal_error(message: str):
+    console.print()
+    console.print(Panel(message, title="ERROR TERMINAL - Ejecución detenida", border_style="bold red"))
